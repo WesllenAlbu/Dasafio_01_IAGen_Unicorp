@@ -57,7 +57,7 @@ def extract_modulo(cat):
 
 def extract_desc(desc):
     if not isinstance(desc, str): return ""
-    m = re.search(r"(?:6\)|8\))\s*DESCREVA.?:\s\n(.*?)(?:\n\d+\)|\Z)", desc, re.IGNORECASE | re.DOTALL)
+    m = re.search(r"(?:6\)|8\))\s*DESCREVA.*?:\s*\n(.*?)(?:\n\d+\)|\Z)", desc, re.IGNORECASE | re.DOTALL)
     if m:
         text = re.sub(r"#[a-f0-9\-]+#[\d.]+", "", m.group(1)).strip()
         text = re.sub(r"\[image\]", "", text).strip()
@@ -67,7 +67,7 @@ def extract_desc(desc):
 
 def extract_tipo(desc):
     if not isinstance(desc, str): return ""
-    m = re.search(r"3\).?OPÇÃO.?:\s*-\.(.*?)\.", desc, re.IGNORECASE)
+    m = re.search(r"3\).*?:\s*-\.\s*(.*?)[\.\.\n]", desc, re.IGNORECASE)
     return m.group(1).strip() if m else ""
 
 @st.cache_data
@@ -137,12 +137,12 @@ with aba1:
 
     g1, g2 = st.columns(2)
     with g1:
-        st.markdown("*Por Prioridade*")
+        st.markdown("**Por Prioridade**")
         pc = df["Prioridade"].value_counts().reset_index()
         pc.columns = ["Prioridade","Qtd"]
         st.bar_chart(pc.set_index("Prioridade"), height=200)
     with g2:
-        st.markdown("*Por Tipo de Solicitação*")
+        st.markdown("**Por Tipo de Solicitação**")
         tc = df[df["tipo_solicitacao"] != ""]["tipo_solicitacao"].value_counts().reset_index()
         tc.columns = ["Tipo","Qtd"]
         if not tc.empty:
@@ -150,12 +150,12 @@ with aba1:
 
     g3, g4 = st.columns(2)
     with g3:
-        st.markdown("*Top 8 Módulos*")
+        st.markdown("**Top 8 Módulos**")
         mc = df["modulo"].value_counts().head(8).reset_index()
         mc.columns = ["Módulo","Qtd"]
         st.bar_chart(mc.set_index("Módulo"), height=200)
     with g4:
-        st.markdown("*Top 8 Técnicos*")
+        st.markdown("**Top 8 Técnicos**")
         tec = df["Atribuído - Técnico"].value_counts().head(8).reset_index()
         tec.columns = ["Técnico","Qtd"]
         st.bar_chart(tec.set_index("Técnico"), height=200)
@@ -215,7 +215,7 @@ with aba1:
     if filtrado.empty:
         st.warning("Nenhum chamado para analisar.")
     else:
-        st.markdown("*Chamado selecionado:*")
+        st.markdown("**Chamado selecionado:**")
         ticket = None
         if st.session_state.id_clicado:
             match = filtrado[filtrado["ID"].astype(str) == st.session_state.id_clicado]
@@ -223,12 +223,12 @@ with aba1:
                 ticket = match.iloc[0]
                 st.markdown(f'<div class="ticket-selecionado">🎯 #{ticket["ID"]} — {ticket["Título"]}</div>', unsafe_allow_html=True)
             else:
-                st.markdown('<div class="ticket-vazio">Nenhum chamado selecionado. Selecione em uma linha da tabela acima.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="ticket-vazio">Nenhum chamado selecionado — clique em uma linha da tabela acima.</div>', unsafe_allow_html=True)
         else:
-            st.markdown('<div class="ticket-vazio">Nenhum chamado selecionado. Selecione em uma linha da tabela acima.</div>', unsafe_allow_html=True)
+            st.markdown('<div class="ticket-vazio">Nenhum chamado selecionado — clique em uma linha da tabela acima.</div>', unsafe_allow_html=True)
 
         if ticket is not None:
-            st.markdown(f"*Descrição:* {ticket.get('desc_curta','') or 'Sem descrição.'}")
+            st.markdown(f"**Descrição:** {ticket.get('desc_curta','') or '_Sem descrição._'}")
 
             if st.button("Processar Ticket com IA", key="btn_aba1"):
                 prompt = f"""Analise o chamado GLPI abaixo e retorne APENAS um JSON válido com as chaves:
@@ -270,17 +270,17 @@ Chamado:
                         col_b.metric("Complexidade", result.get("complexidade","").capitalize())
                         col_c.metric("Impacto",      result.get("impacto","").capitalize())
 
-                        st.info("📝 *Resumo:* " + result.get("resumo",""))
+                        st.info("📝 **Resumo:** " + result.get("resumo",""))
 
-                        st.markdown("*Ações Sugeridas:*")
+                        st.markdown("**Ações Sugeridas:**")
                         for i, a in enumerate(result.get("acoes_sugeridas",[]), 1):
                             st.write(f"{i}. {a}")
 
-                        st.info("✉️ *Rascunho de Resposta:*\n" + result.get("resposta_rascunho",""))
+                        st.info("✉️ **Rascunho de Resposta:**\n" + result.get("resposta_rascunho",""))
 
                         kws = result.get("palavras_chave",[])
                         if kws:
-                            st.markdown("*Palavras-chave:* " + " · ".join([f"{k}" for k in kws]))
+                            st.markdown("**Palavras-chave:** " + " · ".join([f"`{k}`" for k in kws]))
 
                         with st.expander("JSON completo"):
                             st.json(result)
@@ -306,19 +306,19 @@ with aba2:
     if not grupo.empty:
         g1, g2 = st.columns(2)
         with g1:
-            st.markdown("*Top 10 Módulos com mais repetições*")
+            st.markdown("**Top 10 Módulos com mais repetições**")
             mod_rep = grupo.groupby("modulo")["total"].sum().reset_index().sort_values("total", ascending=False).head(10)
             mod_rep.columns = ["Módulo","Total"]
             st.bar_chart(mod_rep.set_index("Módulo"), height=200)
         with g2:
-            st.markdown("*Top 8 Grupos mais recorrentes*")
+            st.markdown("**Top 8 Grupos mais recorrentes**")
             top_g = grupo.head(8).copy()
             top_g["label"] = top_g["modulo"].str[:15] + " | " + top_g["tipo_solicitacao"].str[:12]
             st.bar_chart(top_g.set_index("label")["total"].rename("Ocorrências"), height=200)
 
         g3, g4 = st.columns(2)
         with g3:
-            st.markdown("*Prioridade nos chamados repetidos*")
+            st.markdown("**Prioridade nos chamados repetidos**")
             ids_rep = []
             for _, rg in grupo.iterrows():
                 ids_rep += df[(df["modulo"] == rg["modulo"]) & (df["tipo_solicitacao"] == rg["tipo_solicitacao"])]["ID"].tolist()
@@ -328,7 +328,7 @@ with aba2:
                 pr.columns = ["Prioridade","Qtd"]
                 st.bar_chart(pr.set_index("Prioridade"), height=200)
         with g4:
-            st.markdown("*Tipo de Solicitação recorrente*")
+            st.markdown("**Tipo de Solicitação recorrente**")
             tipo_rep = grupo[grupo["tipo_solicitacao"] != ""].groupby("tipo_solicitacao")["total"].sum().reset_index().sort_values("total", ascending=False)
             tipo_rep.columns = ["Tipo","Total"]
             if not tipo_rep.empty:
@@ -358,7 +358,7 @@ with aba2:
     if grupo.empty:
         st.info("Nenhum grupo recorrente encontrado.")
     else:
-        st.markdown("*Grupo selecionado:*")
+        st.markdown("**Grupo selecionado:**")
         row_g = None
         if st.session_state.grupo_clicado is not None and st.session_state.grupo_clicado < len(grupo):
             row_g = grupo.iloc[st.session_state.grupo_clicado]
@@ -412,14 +412,14 @@ Chamados:
 
                         st.subheader("📊 Dashboard Rápido")
                         st.metric("Nível de Criticidade", result.get("nivel_criticidade","").capitalize())
-                        st.info("🔍 *Causa Raiz Provável:*\n" + result.get("causa_raiz_provavel",""))
-                        st.info("📌 *Padrão Identificado:*\n" + result.get("padrao_identificado",""))
+                        st.info("🔍 **Causa Raiz Provável:**\n" + result.get("causa_raiz_provavel",""))
+                        st.info("📌 **Padrão Identificado:**\n" + result.get("padrao_identificado",""))
 
-                        st.markdown("*Ações Preventivas:*")
+                        st.markdown("**Ações Preventivas:**")
                         for i, a in enumerate(result.get("acoes_preventivas",[]), 1):
                             st.write(f"{i}. {a}")
 
-                        st.info("🔧 *Recomendação Técnica:*\n" + result.get("recomendacao_tecnica",""))
+                        st.info("🔧 **Recomendação Técnica:**\n" + result.get("recomendacao_tecnica",""))
 
                         with st.expander("JSON completo"):
                             st.json(result)
@@ -441,12 +441,11 @@ with aba3:
         .sort_values("total", ascending=False)
     ).reset_index(drop=True)
 
-    st.markdown("*Top 10 Setores por volume*")
+    st.markdown("**Top 10 Setores por volume**")
     st.bar_chart(por_setor.head(10).set_index("setor")["total"].rename("Chamados"), height=220)
 
     st.markdown("---")
 
-    # Tabela PRIMEIRO — captura a seleção antes de renderizar os gráficos de detalhe
     ev3 = st.dataframe(
         por_setor.rename(columns={"setor":"Setor","total":"Qtd Chamados"}),
         use_container_width=True, hide_index=True,
@@ -459,24 +458,23 @@ with aba3:
         if setor_novo != st.session_state.setor_clicado:
             st.session_state.setor_clicado = setor_novo
 
-    # Gráficos de detalhe DEPOIS — agora session_state já tem o valor correto
     setor_atual = st.session_state.setor_clicado
     if setor_atual:
-        st.markdown(f"*Detalhes — {setor_atual}*")
+        st.markdown(f"**Detalhes — {setor_atual}**")
         g1, g2, g3 = st.columns(3)
         with g1:
-            st.markdown("*Módulos*")
+            st.markdown("**Módulos**")
             ms = df[df["setor"] == setor_atual]["modulo"].value_counts().head(8).reset_index()
             ms.columns = ["Módulo","Qtd"]
             if not ms.empty:
                 st.bar_chart(ms.set_index("Módulo"), height=200)
         with g2:
-            st.markdown("*Prioridade*")
+            st.markdown("**Prioridade**")
             ps = df[df["setor"] == setor_atual]["Prioridade"].value_counts().reset_index()
             ps.columns = ["Prioridade","Qtd"]
             st.bar_chart(ps.set_index("Prioridade"), height=200)
         with g3:
-            st.markdown("*Tipo de Solicitação*")
+            st.markdown("**Tipo de Solicitação**")
             ts = df[(df["setor"] == setor_atual) & (df["tipo_solicitacao"] != "")]["tipo_solicitacao"].value_counts().reset_index()
             ts.columns = ["Tipo","Qtd"]
             if not ts.empty:
@@ -488,7 +486,7 @@ with aba3:
     st.divider()
     st.subheader("Análise com IA — Por Que Este Setor Abre Tanto Chamado?")
 
-    st.markdown("*Setor selecionado:*")
+    st.markdown("**Setor selecionado:**")
     if st.session_state.setor_clicado:
         st.markdown(f'<div class="ticket-selecionado">🎯 {st.session_state.setor_clicado}</div>', unsafe_allow_html=True)
         setor_escolhido = st.session_state.setor_clicado
@@ -547,20 +545,20 @@ Amostra de chamados:
 
                     st.subheader("📊 Dashboard Rápido")
                     st.metric("Necessidade de Treinamento", result.get("necessidade_treinamento","").capitalize())
-                    st.info("🏢 *Motivo Principal:*\n" + result.get("motivo_principal",""))
-                    st.info("👤 *Perfil do Setor:*\n" + result.get("perfil_do_setor",""))
+                    st.info("🏢 **Motivo Principal:**\n" + result.get("motivo_principal",""))
+                    st.info("👤 **Perfil do Setor:**\n" + result.get("perfil_do_setor",""))
 
                     mods = result.get("modulos_mais_problematicos",[])
                     if mods:
-                        st.markdown("*Módulos Mais Problemáticos:*")
+                        st.markdown("**Módulos Mais Problemáticos:**")
                         for m in mods:
                             st.write(f"- {m}")
 
-                    st.markdown("*Ações Sugeridas:*")
+                    st.markdown("**Ações Sugeridas:**")
                     for i, a in enumerate(result.get("acoes_sugeridas",[]), 1):
                         st.write(f"{i}. {a}")
 
-                    st.info("📋 *Resumo Executivo:*\n" + result.get("resumo_executivo",""))
+                    st.info("📋 **Resumo Executivo:**\n" + result.get("resumo_executivo",""))
 
                     with st.expander("JSON completo"):
                         st.json(result)
@@ -570,7 +568,6 @@ Amostra de chamados:
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ABA 4 — CONSULTA AOS DADOS
-# Mudanças: input no topo, nova pergunta substitui anterior, sem container
 # ══════════════════════════════════════════════════════════════════════════════
 
 with aba4:
@@ -582,7 +579,6 @@ with aba4:
         chunk_embs = codificar_chunks(df.shape)
         modelo     = carregar_modelo()
 
-    # Input no topo
     pergunta = st.text_input("Faça sua pergunta:", placeholder="Ex: Qual técnico tem mais chamados de alta prioridade?", key="pergunta_aba4")
 
     if st.button("Enviar", key="btn_enviar_aba4"):
@@ -612,14 +608,12 @@ with aba4:
                 )
                 resposta = resp.choices[0].message.content
 
-            # Substitui — guarda apenas a última pergunta e resposta
             st.session_state.ultima_resposta = {
                 "pergunta": pergunta,
                 "resposta": resposta,
                 "trechos":  trechos
             }
 
-    # Exibe a última pergunta e resposta no estilo chat
     if st.session_state.ultima_resposta:
         st.markdown("---")
         with st.chat_message("user"):
