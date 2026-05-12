@@ -111,11 +111,6 @@ def codificar_chunks(shape):
 with st.sidebar:
     st.header("Configuração")
     arquivo = st.file_uploader("Carregar CSV do GLPI", type=["csv"])
-    st.markdown("---")
-    if api_key and api_key.startswith("sk-"):
-        st.success(f"✅ API Key OK: `{api_key[:8]}...{api_key[-4:]}`")
-    else:
-        st.error("❌ OPENAI_API_KEY não encontrada no .env")
 
 if not arquivo:
     st.title("🎯 GLPI Triagem Inteligente")
